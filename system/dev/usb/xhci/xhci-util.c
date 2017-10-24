@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include <ddk/debug.h>
+#include <hw/arch_ops.h>
 #include <stdio.h>
 
 #include "xhci-util.h"
@@ -37,7 +38,7 @@ zx_status_t xhci_send_command(xhci_t* xhci, uint32_t cmd, uint64_t ptr, uint32_t
 
     // Wait for one second (arbitrarily chosen timeout)
     // TODO(voydanoff) consider making the timeout a parameter to this function
-    zx_status_t status = completion_wait(&command.completion, ZX_SEC(1));
+    zx_status_t status = completion_wait(&command.completion, ZX_TIME_INFINITE);
     if (status == ZX_OK) {
         cc = (command.status & XHCI_MASK(EVT_TRB_CC_START, EVT_TRB_CC_BITS)) >> EVT_TRB_CC_START;
          if (cc == TRB_CC_SUCCESS) {
@@ -46,6 +47,7 @@ zx_status_t xhci_send_command(xhci_t* xhci, uint32_t cmd, uint64_t ptr, uint32_t
         zxlogf(ERROR, "xhci_send_command %u failed, cc: %d\n", cmd, cc);
         return ZX_ERR_INTERNAL;
     } else if (status == ZX_ERR_TIMED_OUT) {
+printf("command time out!\n");
         completion_reset(&command.completion);
 
         // abort the command
@@ -61,7 +63,9 @@ zx_status_t xhci_send_command(xhci_t* xhci, uint32_t cmd, uint64_t ptr, uint32_t
         }
 
         // ring doorbell to restart command ring
+hw_mb();
         XHCI_WRITE32(&xhci->doorbells[0], 0);
+hw_mb();
         xhci_wait_bits64(crcr_ptr, CRCR_CRR, CRCR_CRR);
     }
 

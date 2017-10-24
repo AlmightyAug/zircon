@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include <ddk/debug.h>
+#include <hw/arch_ops.h>
 #include <hw/reg.h>
 #include <zircon/types.h>
 #include <zircon/syscalls.h>
@@ -517,6 +518,7 @@ void xhci_post_command(xhci_t* xhci, uint32_t command, uint64_t ptr, uint32_t co
                        xhci_command_context_t* context) {
     // FIXME - check that command ring is not full?
 
+printf("xhci_post_command %d\n", command);
     mtx_lock(&xhci->command_ring_lock);
 
     xhci_transfer_ring_t* cr = &xhci->command_ring;
@@ -538,7 +540,7 @@ void xhci_post_command(xhci_t* xhci, uint32_t command, uint64_t ptr, uint32_t co
 static void xhci_handle_command_complete_event(xhci_t* xhci, xhci_trb_t* event_trb) {
     xhci_trb_t* command_trb = xhci_read_trb_ptr(&xhci->command_ring, event_trb);
     uint32_t cc = XHCI_GET_BITS32(&event_trb->status, EVT_TRB_CC_START, EVT_TRB_CC_BITS);
-    zxlogf(TRACE, "xhci_handle_command_complete_event slot_id: %d command: %d cc: %d\n",
+    zxlogf(LINFO, "xhci_handle_command_complete_event slot_id: %d command: %d cc: %d\n",
             (event_trb->control >> TRB_SLOT_ID_START), trb_get_type(command_trb), cc);
 
     int index = command_trb - xhci->command_ring.start;
@@ -597,6 +599,7 @@ static void xhci_handle_events(xhci_t* xhci, int interrupter) {
             xhci_handle_command_complete_event(xhci, er->current);
             break;
         case TRB_EVENT_PORT_STATUS_CHANGE:
+printf("TRB_EVENT_PORT_STATUS_CHANGE\n");
             xhci_handle_root_hub_change(xhci);
             break;
         case TRB_EVENT_TRANSFER:
@@ -625,6 +628,7 @@ void xhci_handle_interrupt(xhci_t* xhci, uint32_t interrupter) {
     // clear the interrupt pending flag
     xhci_intr_regs_t* intr_regs = &xhci->runtime_regs->intr_regs[interrupter];
     XHCI_WRITE32(&intr_regs->iman, IMAN_IE | IMAN_IP);
+    XHCI_READ32(&intr_regs->iman);
 
     xhci_handle_events(xhci, interrupter);
 }

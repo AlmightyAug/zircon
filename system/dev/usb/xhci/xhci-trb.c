@@ -4,6 +4,8 @@
 
 #include "xhci.h"
 
+#include <stdio.h>
+
 zx_status_t xhci_transfer_ring_init(xhci_transfer_ring_t* ring, int count) {
     zx_status_t status = io_buffer_init(&ring->buffer, count * sizeof(xhci_trb_t),
                                         IO_BUFFER_RW | IO_BUFFER_CONTIG);
@@ -92,19 +94,19 @@ void xhci_increment_ring(xhci_transfer_ring_t* ring) {
         XHCI_WRITE32(&trb->control, control | ring->pcs);
     }
 #if XHCI_USE_CACHE_OPS
-    io_buffer_cache_op(&ring->buffer, ZX_VMO_OP_CACHE_CLEAN,
-                      (ring->current - ring->start) * sizeof(xhci_trb_t), sizeof(xhci_trb_t));
+    io_buffer_cache_op(&ring->buffer, ZX_VMO_OP_CACHE_CLEAN, 0, ring->buffer.size);
 #endif
     trb = ++ring->current;
 
     // check for LINK TRB
     control = XHCI_READ32(&trb->control);
     if ((control & TRB_TYPE_MASK) == (TRB_LINK << TRB_TYPE_START)) {
+printf("wrap\n");
+
         control = (control & ~(TRB_CHAIN | TRB_C)) | chain | ring->pcs;
         XHCI_WRITE32(&trb->control, control);
 #if XHCI_USE_CACHE_OPS
-        io_buffer_cache_op(&ring->buffer, ZX_VMO_OP_CACHE_CLEAN,
-                           (ring->current - ring->start) * sizeof(xhci_trb_t), sizeof(xhci_trb_t));
+        io_buffer_cache_op(&ring->buffer, ZX_VMO_OP_CACHE_CLEAN, 0, ring->buffer.size);
 #endif
 
         // toggle pcs if necessary

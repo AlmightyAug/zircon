@@ -122,89 +122,89 @@ static const usb_speed_t xhci_rh_speeds[] = {
 };
 
 static void print_portsc(int port, uint32_t portsc) {
-    zxlogf(SPEW, "port %d:", port);
-    if (portsc & PORTSC_CCS) zxlogf(SPEW, " CCS");
-    if (portsc & PORTSC_PED) zxlogf(SPEW, " PED");
-    if (portsc & PORTSC_OCA) zxlogf(SPEW, " OCA");
-    if (portsc & PORTSC_PR) zxlogf(SPEW, " PR");
+    zxlogf(INFO, "port %d:", port);
+    if (portsc & PORTSC_CCS) zxlogf(INFO, " CCS");
+    if (portsc & PORTSC_PED) zxlogf(INFO, " PED");
+    if (portsc & PORTSC_OCA) zxlogf(INFO, " OCA");
+    if (portsc & PORTSC_PR) zxlogf(INFO, " PR");
     uint32_t pls = (portsc >> PORTSC_PLS_START) & ((1 << PORTSC_PLS_BITS) - 1);
     switch (pls) {
         case 0:
-            zxlogf(SPEW, " U0");
+            zxlogf(INFO, " U0");
             break;
         case 1:
-            zxlogf(SPEW, " U1");
+            zxlogf(INFO, " U1");
             break;
         case 2:
-            zxlogf(SPEW, " U2");
+            zxlogf(INFO, " U2");
             break;
         case 3:
-            zxlogf(SPEW, " U3");
+            zxlogf(INFO, " U3");
             break;
         case 4:
-            zxlogf(SPEW, " Disabled");
+            zxlogf(INFO, " Disabled");
             break;
         case 5:
-            zxlogf(SPEW, " RxDetect");
+            zxlogf(INFO, " RxDetect");
             break;
         case 6:
-            zxlogf(SPEW, " Inactive");
+            zxlogf(INFO, " Inactive");
             break;
         case 7:
-            zxlogf(SPEW, " Polling");
+            zxlogf(INFO, " Polling");
             break;
         case 8:
-            zxlogf(SPEW, " Recovery");
+            zxlogf(INFO, " Recovery");
             break;
         case 9:
-            zxlogf(SPEW, " Hot Reset");
+            zxlogf(INFO, " Hot Reset");
             break;
         case 10:
-            zxlogf(SPEW, " Compliance Mode");
+            zxlogf(INFO, " Compliance Mode");
             break;
         case 11:
-            zxlogf(SPEW, " Test Mode");
+            zxlogf(INFO, " Test Mode");
             break;
         case 15:
-            zxlogf(SPEW, " Resume");
+            zxlogf(INFO, " Resume");
             break;
         default:
-            zxlogf(SPEW, " PLS%d", pls);
+            zxlogf(INFO, " PLS%d", pls);
             break;
     }
-    if (portsc & PORTSC_PP) zxlogf(SPEW, " PP");
+    if (portsc & PORTSC_PP) zxlogf(INFO, " PP");
     uint32_t speed = (portsc >> PORTSC_SPEED_START) & ((1 << PORTSC_SPEED_BITS) - 1);
     switch (speed) {
         case 1:
-            zxlogf(SPEW, " FULL_SPEED");
+            zxlogf(INFO, " FULL_SPEED");
             break;
         case 2:
-            zxlogf(SPEW, " LOW_SPEED");
+            zxlogf(INFO, " LOW_SPEED");
             break;
         case 3:
-            zxlogf(SPEW, " HIGH_SPEED");
+            zxlogf(INFO, " HIGH_SPEED");
             break;
         case 4:
-            zxlogf(SPEW, " SUPER_SPEED");
+            zxlogf(INFO, " SUPER_SPEED");
             break;
     }
     uint32_t pic = (portsc >> PORTSC_PIC_START) & ((1 << PORTSC_PIC_BITS) - 1);
-    zxlogf(SPEW, " PIC%d", pic);
-    if (portsc & PORTSC_LWS) zxlogf(SPEW, " LWS");
-    if (portsc & PORTSC_CSC) zxlogf(SPEW, " CSC");
-    if (portsc & PORTSC_PEC) zxlogf(SPEW, " PEC");
-    if (portsc & PORTSC_WRC) zxlogf(SPEW, " WRC");
-    if (portsc & PORTSC_OCC) zxlogf(SPEW, " OCC");
-    if (portsc & PORTSC_PRC) zxlogf(SPEW, " PRC");
-    if (portsc & PORTSC_PLC) zxlogf(SPEW, " PLC");
-    if (portsc & PORTSC_CEC) zxlogf(SPEW, " CEC");
-    if (portsc & PORTSC_CAS) zxlogf(SPEW, " CAS");
-    if (portsc & PORTSC_WCE) zxlogf(SPEW, " WCE");
-    if (portsc & PORTSC_WDE) zxlogf(SPEW, " WDE");
-    if (portsc & PORTSC_WOE) zxlogf(SPEW, " WOE");
-    if (portsc & PORTSC_DR) zxlogf(SPEW, " DR");
-    if (portsc & PORTSC_WPR) zxlogf(SPEW, " WPR");
-    zxlogf(SPEW, "\n");
+    zxlogf(INFO, " PIC%d", pic);
+    if (portsc & PORTSC_LWS) zxlogf(INFO, " LWS");
+    if (portsc & PORTSC_CSC) zxlogf(INFO, " CSC");
+    if (portsc & PORTSC_PEC) zxlogf(INFO, " PEC");
+    if (portsc & PORTSC_WRC) zxlogf(INFO, " WRC");
+    if (portsc & PORTSC_OCC) zxlogf(INFO, " OCC");
+    if (portsc & PORTSC_PRC) zxlogf(INFO, " PRC");
+    if (portsc & PORTSC_PLC) zxlogf(INFO, " PLC");
+    if (portsc & PORTSC_CEC) zxlogf(INFO, " CEC");
+    if (portsc & PORTSC_CAS) zxlogf(INFO, " CAS");
+    if (portsc & PORTSC_WCE) zxlogf(INFO, " WCE");
+    if (portsc & PORTSC_WDE) zxlogf(INFO, " WDE");
+    if (portsc & PORTSC_WOE) zxlogf(INFO, " WOE");
+    if (portsc & PORTSC_DR) zxlogf(INFO, " DR");
+    if (portsc & PORTSC_WPR) zxlogf(INFO, " WPR");
+    zxlogf(INFO, "\n");
 }
 
 static void xhci_reset_port(xhci_t* xhci, xhci_root_hub_t* rh, int rh_port_index) {
@@ -286,7 +286,7 @@ static zx_status_t xhci_start_root_hub(xhci_t* xhci, xhci_root_hub_t* rh, int rh
 }
 
 zx_status_t xhci_start_root_hubs(xhci_t* xhci) {
-    zxlogf(TRACE, "xhci_start_root_hubs\n");
+    zxlogf(INFO, "xhci_start_root_hubs\n");
 
     for (int i = 0; i < XHCI_RH_COUNT; i++) {
         zx_status_t status = xhci_start_root_hub(xhci, &xhci->root_hubs[i], i);
@@ -300,7 +300,7 @@ zx_status_t xhci_start_root_hubs(xhci_t* xhci) {
 }
 
 void xhci_stop_root_hubs(xhci_t* xhci) {
-    zxlogf(TRACE, "xhci_stop_root_hubs\n");
+    zxlogf(INFO, "xhci_stop_root_hubs\n");
 
     volatile xhci_port_regs_t* port_regs = xhci->op_regs->port_regs;
     for (uint32_t i = 0; i < xhci->rh_num_ports; i++) {
@@ -503,14 +503,14 @@ zx_status_t xhci_rh_usb_request_queue(xhci_t* xhci, usb_request_t* req, int rh_i
 void xhci_handle_root_hub_change(xhci_t* xhci) {
     volatile xhci_port_regs_t* port_regs = xhci->op_regs->port_regs;
 
-    zxlogf(TRACE, "xhci_handle_root_hub_change\n");
+    zxlogf(INFO, "xhci_handle_root_hub_change\n");
 
     for (uint32_t i = 0; i < xhci->rh_num_ports; i++) {
         uint32_t portsc = XHCI_READ32(&port_regs[i].portsc);
         uint32_t speed = (portsc & XHCI_MASK(PORTSC_SPEED_START, PORTSC_SPEED_BITS)) >> PORTSC_SPEED_START;
         uint32_t status_bits = portsc & PORTSC_STATUS_BITS;
 
-        if (driver_get_log_flags() & DDK_LOG_SPEW) {
+        if (driver_get_log_flags() & DDK_LOG_INFO) {
             print_portsc(i, portsc);
         }
 
@@ -529,7 +529,7 @@ void xhci_handle_root_hub_change(xhci_t* xhci) {
 
             if (portsc & PORTSC_CSC) {
                 // connect status change
-                zxlogf(TRACE, "port %d PORTSC_CSC connected: %d\n", i, connected);
+                zxlogf(INFO, "port %d PORTSC_CSC connected: %d\n", i, connected);
                 if (connected) {
                      status->wPortStatus |= USB_PORT_CONNECTION;
                 } else {
@@ -542,7 +542,7 @@ void xhci_handle_root_hub_change(xhci_t* xhci) {
             }
             if (portsc & PORTSC_PRC) {
                 // port reset change
-                zxlogf(TRACE, "port %d PORTSC_PRC enabled: %d\n", i, enabled);
+                zxlogf(INFO, "port %d PORTSC_PRC enabled: %d\n", i, enabled);
                 if (enabled) {
                     status->wPortStatus &= ~USB_PORT_RESET;
                     status->wPortChange |= USB_C_PORT_RESET;

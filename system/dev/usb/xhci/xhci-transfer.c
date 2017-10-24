@@ -5,6 +5,7 @@
 #include <ddk/debug.h>
 #include <ddk/protocol/usb.h>
 #include <ddk/protocol/usb-hci.h>
+#include <hw/arch_ops.h>
 #include <zircon/assert.h>
 #include <zircon/hw/usb.h>
 #include <stdio.h>
@@ -55,10 +56,12 @@ static void xhci_process_transactions_locked(xhci_t* xhci, xhci_slot_t* slot, ui
                                              list_node_t* completed_reqs);
 
 zx_status_t xhci_reset_endpoint(xhci_t* xhci, uint32_t slot_id, uint32_t ep_index) {
+#if 0
     xhci_slot_t* slot = &xhci->slots[slot_id];
     xhci_endpoint_t* ep = &slot->eps[ep_index];
     usb_request_t* req;
 
+printf("xhci_reset_endpoint\n");
     // Recover from Halted and Error conditions. See section 4.8.3 of the XHCI spec.
 
     mtx_lock(&ep->lock);
@@ -92,6 +95,7 @@ zx_status_t xhci_reset_endpoint(xhci_t* xhci, uint32_t slot_id, uint32_t ep_inde
         }
     }
 
+
     // resetting the dequeue pointer gets us out of ERROR state, and is also necessary
     // after TRB_CMD_RESET_ENDPOINT.
     if (ep_ctx_state == EP_CTX_STATE_ERROR || ep_ctx_state == EP_CTX_STATE_HALTED) {
@@ -112,6 +116,7 @@ zx_status_t xhci_reset_endpoint(xhci_t* xhci, uint32_t slot_id, uint32_t ep_inde
     }
 
     ep_ctx_state = xhci_get_ep_ctx_state(slot, ep);
+printf("xhci_reset_endpoint ep_ctx_state now %d\n", ep_ctx_state);
     zx_status_t status;
     switch (ep_ctx_state) {
     case EP_CTX_STATE_DISABLED:
@@ -137,7 +142,9 @@ zx_status_t xhci_reset_endpoint(xhci_t* xhci, uint32_t slot_id, uint32_t ep_inde
     list_node_t completed_reqs = LIST_INITIAL_VALUE(completed_reqs);
     if (ep->state == EP_STATE_RUNNING) {
         // start processing transactions again
+printf("call xhci_process_transactions_locked\n");
         xhci_process_transactions_locked(xhci, slot, ep_index, &completed_reqs);
+printf("did xhci_process_transactions_locked\n");
     }
 
     mtx_unlock(&ep->lock);
@@ -147,7 +154,10 @@ zx_status_t xhci_reset_endpoint(xhci_t* xhci, uint32_t slot_id, uint32_t ep_inde
         usb_request_complete(req, req->response.status, req->response.actual);
     }
 
+printf("xhci_reset_endpoint returning %d\n", status);
     return status;
+#endif
+return 0;
 }
 
 // locked on ep->lock
@@ -401,11 +411,15 @@ static zx_status_t xhci_continue_transfer_locked(xhci_t* xhci, xhci_slot_t* slot
     // update dequeue_ptr to TRB following this transaction
     req->context = (void *)ring->current;
 
+hw_mb();
     XHCI_WRITE32(&xhci->doorbells[header->device_id], ep_index + 1);
+hw_mb();
     // it seems we need to ring the doorbell a second time when transitioning from STOPPED
     while (xhci_get_ep_ctx_state(slot, ep) == EP_CTX_STATE_STOPPED) {
         zx_nanosleep(zx_deadline_after(ZX_MSEC(1)));
+hw_mb();
         XHCI_WRITE32(&xhci->doorbells[header->device_id], ep_index + 1);
+hw_mb();
     }
 
     return ZX_OK;
@@ -531,6 +545,8 @@ zx_status_t xhci_queue_transfer(xhci_t* xhci, usb_request_t* req) {
 
 zx_status_t xhci_cancel_transfers(xhci_t* xhci, uint32_t slot_id, uint32_t ep_index) {
     zxlogf(TRACE, "xhci_cancel_transfers slot_id: %d ep_index: %d\n", slot_id, ep_index);
+
+printf("xhci_cancel_transfers\n");
 
     if (slot_id < 1 || slot_id > xhci->max_slots) {
         return ZX_ERR_INVALID_ARGS;
@@ -764,6 +780,10 @@ void xhci_handle_transfer_event(xhci_t* xhci, xhci_trb_t* trb) {
             break;
         }
     }
+
+if (result < 0) {
+printf("transfer event fail cc: %d\n", cc);
+}
 
     if (trb_get_ptr(trb) && !list_is_empty(&ep->pending_reqs)) {
         if (control & EVT_TRB_ED) {

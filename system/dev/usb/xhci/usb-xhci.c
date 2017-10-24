@@ -215,8 +215,8 @@ static int completer_thread(void *arg) {
             zx_interrupt_complete(irq_handle);
             break;
         }
-        zx_interrupt_complete(irq_handle);
         xhci_handle_interrupt(completer->xhci, completer->interrupter);
+        zx_interrupt_complete(irq_handle);
     }
     zxlogf(TRACE, "xhci completer %u thread done\n", completer->interrupter);
     free(completer);
@@ -433,6 +433,8 @@ static zx_status_t usb_xhci_bind(void* ctx, zx_device_t* parent, void** cookie) 
     pci_protocol_t pci;
     platform_device_protocol_t pdev;
     zx_status_t status;
+
+//driver_set_log_flags(7);
 
     if ((status = device_get_protocol(parent, ZX_PROTOCOL_PCI, &pci)) == ZX_OK) {
         return usb_xhci_bind_pci(parent, &pci);
