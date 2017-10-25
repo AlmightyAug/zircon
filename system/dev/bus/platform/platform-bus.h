@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <ddk/device.h>
 #include <ddk/protocol/gpio.h>
+#include <ddk/protocol/i2c.h>
 #include <ddk/protocol/platform-bus.h>
 #include <ddk/protocol/platform-device.h>
 #include <ddk/protocol/usb-mode-switch.h>
@@ -18,6 +19,7 @@ typedef struct {
     pbus_interface_t interface;
     usb_mode_switch_protocol_t ums;
     gpio_protocol_t gpio;
+    i2c_protocol_t i2c;
     zx_handle_t resource;   // root resource for platform bus
     uint32_t vid;
     uint32_t pid;

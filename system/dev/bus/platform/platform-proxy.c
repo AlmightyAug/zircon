@@ -23,6 +23,12 @@ typedef struct {
     atomic_int next_txid;
 } platform_dev_t;
 
+typedef struct {
+//    i2c_channel_t i2c;
+    platform_dev_t* dev;
+    void* server_ctx;
+} pdev_i2c_channel_ctx_t;
+
 static zx_status_t platform_dev_rpc(platform_dev_t* dev, pdev_req_t* req, pdev_resp_t* resp,
                                     zx_handle_t* out_handles, uint32_t out_handle_count) {
     uint32_t resp_size, handle_count;
@@ -140,6 +146,141 @@ static gpio_protocol_ops_t gpio_ops = {
     .write = pdev_gpio_write,
 };
 
+static zx_status_t pdev_i2c_read(void* ctx, void* read_buf, size_t read_buf_length,
+                                 zx_time_t timeout, size_t* actual) {
+return 0;
+}
+
+static zx_status_t pdev_i2c_write(void* ctx, const void* write_buf, size_t write_buf_length) {
+return 0;
+}
+
+static zx_status_t pdev_i2c_write_async(void* ctx, const void* write_buf, size_t write_buf_length) {
+return 0;
+}
+
+static zx_status_t pdev_i2c_flush(void* ctx, zx_time_t timeout) {
+    pdev_i2c_channel_ctx_t* channel_ctx = ctx;
+    pdev_req_t req = {
+        .op = PDEV_I2C_FLUSH,
+        .i2c = {
+            .server_ctx = channel_ctx->server_ctx,
+            .timeout = timeout,
+        },
+    };
+    pdev_resp_t resp;
+
+    return platform_dev_rpc(channel_ctx->dev, &req, &resp, NULL, 0);
+}
+
+static zx_status_t pdev_i2c_write_read(void* ctx, const void* writebuf, size_t write_buf_length,
+                                       void* read_buf, size_t read_buf_len, zx_time_t timeout,
+                                       size_t* actual) {
+return 0;
+}
+
+static zx_status_t pdev_i2c_set_bitrate(void* ctx, uint32_t bitrate) {
+    pdev_i2c_channel_ctx_t* channel_ctx = ctx;
+    pdev_req_t req = {
+        .op = PDEV_I2C_SET_BITRATE,
+        .i2c = {
+            .server_ctx = channel_ctx->server_ctx,
+            .bitrate = bitrate,
+        },
+    };
+    pdev_resp_t resp;
+
+    return platform_dev_rpc(channel_ctx->dev, &req, &resp, NULL, 0);
+}
+
+static i2c_channel_ops_t pdev_i2c_channel_ops = {
+    .read = pdev_i2c_read,
+    .write = pdev_i2c_write,
+    .write_async = pdev_i2c_write_async,
+    .flush = pdev_i2c_flush,
+    .write_read = pdev_i2c_write_read,
+    .set_bitrate = pdev_i2c_set_bitrate,
+};
+
+static zx_status_t pdev_i2c_get_channel(void* ctx, uint32_t channel_id, i2c_channel_t* channel) {
+    platform_dev_t* dev = ctx;
+    pdev_i2c_channel_ctx_t* channel_ctx = calloc(1, sizeof(pdev_i2c_channel_ctx_t));
+    if (!channel_ctx) {
+        return ZX_ERR_NO_MEMORY;
+    }
+
+    pdev_req_t req = {
+        .op = PDEV_I2C_GET_CHANNEL,
+        .i2c = {
+            .id = channel_id,
+        },
+    };
+    pdev_resp_t resp;
+
+    zx_status_t status = platform_dev_rpc(dev, &req, &resp, NULL, 0);
+    if (status == ZX_OK) {
+        channel_ctx->dev = dev;
+        channel_ctx->server_ctx = resp.i2c.server_ctx;
+        channel->ops = &pdev_i2c_channel_ops;
+        channel->ctx = channel_ctx;
+    } else {
+        free(channel_ctx);
+    }
+
+    return status;
+}
+
+static zx_status_t pdev_i2c_get_channel_by_address(void* ctx, uint32_t bus_id, uint16_t address,
+                                                   i2c_channel_t* channel) {
+    platform_dev_t* dev = ctx;
+    pdev_i2c_channel_ctx_t* channel_ctx = calloc(1, sizeof(pdev_i2c_channel_ctx_t));
+    if (!channel_ctx) {
+        return ZX_ERR_NO_MEMORY;
+    }
+
+    pdev_req_t req = {
+        .op = PDEV_I2C_GET_CHANNEL_BY_ADDRESS,
+        .i2c = {
+            .id = bus_id,
+            .address = address,
+        },
+    };
+    pdev_resp_t resp;
+
+    zx_status_t status = platform_dev_rpc(dev, &req, &resp, NULL, 0);
+    if (status == ZX_OK) {
+        channel_ctx->dev = dev;
+        channel_ctx->server_ctx = resp.i2c.server_ctx;
+        channel->ops = &pdev_i2c_channel_ops;
+        channel->ctx = channel_ctx;
+    } else {
+        free(channel_ctx);
+    }
+
+    return status;
+}
+
+static void pdev_i2c_channel_release(void* ctx, i2c_channel_t* channel) {
+    platform_dev_t* dev = ctx;
+    pdev_i2c_channel_ctx_t* channel_ctx = channel->ctx;
+    pdev_req_t req = {
+        .op = PDEV_I2C_CHANNEL_RELEASE,
+        .i2c = {
+            .server_ctx = channel_ctx->server_ctx,
+        },
+    };
+    pdev_resp_t resp;
+
+    platform_dev_rpc(dev, &req, &resp, NULL, 0);
+    free(channel_ctx);
+}
+
+static i2c_protocol_ops_t i2c_ops = {
+    .get_channel = pdev_i2c_get_channel,
+    .get_channel_by_address = pdev_i2c_get_channel_by_address,
+    .channel_release = pdev_i2c_channel_release,
+};
+
 static zx_status_t platform_dev_get_protocol(void* ctx, uint32_t proto_id, void* out) {
     switch (proto_id) {
     case ZX_PROTOCOL_USB_MODE_SWITCH: {
@@ -152,6 +293,12 @@ static zx_status_t platform_dev_get_protocol(void* ctx, uint32_t proto_id, void*
         gpio_protocol_t* proto = out;
         proto->ctx = ctx;
         proto->ops = &gpio_ops;
+        return ZX_OK;
+    }
+    case ZX_PROTOCOL_I2C: {
+        i2c_protocol_t* proto = out;
+        proto->ctx = ctx;
+        proto->ops = &i2c_ops;
         return ZX_OK;
     }
     default:

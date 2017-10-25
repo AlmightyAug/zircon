@@ -102,6 +102,83 @@ static zx_status_t platform_dev_gpio_write(platform_dev_t* dev, uint32_t index, 
     return gpio_write(&bus->gpio, index, value);
 }
 
+static zx_status_t platform_i2c_get_channel(platform_dev_t* dev, pdev_i2c_req_t* req,
+                                            pdev_i2c_resp_t* resp) {
+    platform_bus_t* bus = dev->bus;
+    if (!bus->i2c.ops) {
+        return ZX_ERR_NOT_SUPPORTED;
+    }
+
+    i2c_channel_t* channel = calloc(1, sizeof(i2c_channel_t));
+    if (!channel) {
+        return ZX_ERR_NO_MEMORY;
+    }
+    zx_status_t status = i2c_get_channel(&bus->i2c, req->id, channel);
+    if (status == ZX_OK) {
+        resp->server_ctx = channel;
+    } else {
+        free(channel);
+    }
+
+    return status;
+}
+
+static zx_status_t platform_i2c_get_channel_by_address(platform_dev_t* dev, pdev_i2c_req_t* req,
+                                                       pdev_i2c_resp_t* resp) {
+    platform_bus_t* bus = dev->bus;
+    if (!bus->i2c.ops) {
+        return ZX_ERR_NOT_SUPPORTED;
+    }
+
+    i2c_channel_t* channel = calloc(1, sizeof(i2c_channel_t));
+    if (!channel) {
+        return ZX_ERR_NO_MEMORY;
+    }
+    zx_status_t status = i2c_get_channel_by_address(&bus->i2c, req->id, req->address, channel);
+    if (status == ZX_OK) {
+        resp->server_ctx = channel;
+    } else {
+        free(channel);
+    }
+
+    return status;
+}
+
+static void platform_i2c_channel_release(platform_dev_t* dev, pdev_i2c_req_t* req) {
+
+}
+
+static zx_status_t platform_i2c_read(platform_dev_t* dev, pdev_i2c_req_t* req,
+                                      pdev_i2c_resp_t* resp) {
+    return 0;
+}
+
+static zx_status_t platform_i2c_write(platform_dev_t* dev, pdev_i2c_req_t* req,
+                                      pdev_i2c_resp_t* resp) {
+    return 0;
+}
+
+static zx_status_t platform_i2c_write_async(platform_dev_t* dev, pdev_i2c_req_t* req,
+                                            pdev_i2c_resp_t* resp) {
+    return 0;
+}
+
+static zx_status_t platform_i2c_flush(platform_dev_t* dev, pdev_i2c_req_t* req,
+                                            pdev_i2c_resp_t* resp) {
+    i2c_channel_t* channel = (i2c_channel_t *)req->server_ctx;
+    return i2c_flush(channel, req->timeout);
+}
+
+static zx_status_t platform_i2c_write_read(platform_dev_t* dev, pdev_i2c_req_t* req,
+                                            pdev_i2c_resp_t* resp) {
+    return 0;
+}
+static zx_status_t platform_i2c_get_bitrate(platform_dev_t* dev, pdev_i2c_req_t* req,
+                                            pdev_i2c_resp_t* resp) {
+    i2c_channel_t* channel = (i2c_channel_t *)req->server_ctx;
+    return i2c_set_bitrate(channel, req->bitrate);
+}
+
 static zx_status_t platform_dev_rxrpc(void* ctx, zx_handle_t channel) {
     platform_dev_t* dev = ctx;
     pdev_req_t req;
@@ -142,6 +219,33 @@ static zx_status_t platform_dev_rxrpc(void* ctx, zx_handle_t channel) {
         break;
     case PDEV_GPIO_WRITE:
         resp.status = platform_dev_gpio_write(dev, req.index, req.gpio_value);
+        break;
+    case PDEV_I2C_GET_CHANNEL:
+        resp.status = platform_i2c_get_channel(dev, &req.i2c, &resp.i2c);
+        break;
+    case PDEV_I2C_GET_CHANNEL_BY_ADDRESS:
+        resp.status = platform_i2c_get_channel_by_address(dev, &req.i2c, &resp.i2c);
+        break;
+    case PDEV_I2C_CHANNEL_RELEASE:
+        platform_i2c_channel_release(dev, &req.i2c);
+        break;
+    case PDEV_I2C_READ:
+        resp.status = platform_i2c_read(dev, &req.i2c, &resp.i2c);
+        break;
+    case PDEV_I2C_WRITE:
+        resp.status = platform_i2c_write(dev, &req.i2c, &resp.i2c);
+        break;
+    case PDEV_I2C_WRITE_ASYNC:
+        resp.status = platform_i2c_write_async(dev, &req.i2c, &resp.i2c);
+        break;
+    case PDEV_I2C_FLUSH:
+        resp.status = platform_i2c_flush(dev, &req.i2c, &resp.i2c);
+        break;
+    case PDEV_I2C_WRITE_READ:
+        resp.status = platform_i2c_write_read(dev, &req.i2c, &resp.i2c);
+        break;
+    case PDEV_I2C_SET_BITRATE:
+        resp.status = platform_i2c_get_bitrate(dev, &req.i2c, &resp.i2c);
         break;
     default:
         zxlogf(ERROR, "platform_dev_rxrpc: unknown op %u\n", req.op);
